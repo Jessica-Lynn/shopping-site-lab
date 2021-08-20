@@ -6,7 +6,7 @@ put melons in a shopping cart.
 Authors: Joel Burton, Christian Fernandez, Meggie Mahnken, Katie Byers.
 """
 
-from flask import Flask, render_template, redirect, flash
+from flask import Flask, render_template, redirect, flash, session
 import jinja2
 
 import melons
@@ -14,8 +14,7 @@ import melons
 app = Flask(__name__)
 
 # A secret key is needed to use Flask sessioning features
-app.secret_key = 'this-should-be-something-unguessable'
-
+app.secret_key = 'sarahjessmary'
 # Normally, if you refer to an undefined variable in a Jinja template,
 # Jinja silently ignores this. This makes debugging difficult, so we'll
 # set an attribute of the Jinja environment that says to make this an
@@ -56,6 +55,7 @@ def show_melon(melon_id):
                            display_melon=melon)
 
 
+
 @app.route("/cart")
 def show_shopping_cart():
     """Display content of shopping cart."""
@@ -77,8 +77,23 @@ def show_shopping_cart():
     #
     # Make sure your function can also handle the case wherein no cart has
     # been added to the session
+    cart = session["cart"]
+    melons_list = []
+    total_order = 0
 
-    return render_template("cart.html")
+    for melon_id in cart:
+        melon = melons.get_by_id(melon_id)
+        cost = melon.price * cart[melon_id]
+        total_order += cost
+        melon.cost = cost
+        melon.quantity = cart[melon_id]
+        melons_list.append(melon)
+    
+
+
+    return render_template("cart.html", 
+                            melons_list=melons_list, 
+                            total_order=total_order)
 
 
 @app.route("/add_to_cart/<melon_id>")
@@ -99,8 +114,12 @@ def add_to_cart(melon_id):
     # - increment the count for that melon id by 1
     # - flash a success message
     # - redirect the user to the cart page
+    if session.get('cart') == None:
+        session['cart'] = {}
 
-    return "Oops! This needs to be implemented!"
+    session['cart'][melon_id] = session['cart'].get(melon_id, 0) + 1
+    flash("Melon was successfully added to cart.")
+    return redirect('/cart')
 
 
 @app.route("/login", methods=["GET"])
